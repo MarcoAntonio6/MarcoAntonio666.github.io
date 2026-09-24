@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMC | Ingeniería de Tráfico y Seguridad Vial</title>
+    <style>
+        :root {
+            /* Paleta TMC / Smart City */
+            --bg-dark: #0b1120;
+            --blue-tech: #0ea5e9;
+            --amber-alert: #f59e0b;
+            --green-flow: #10b981;
+            --red-congestion: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --glass-bg: rgba(15, 23, 42, 0.6);
+            --glass-border: rgba(14, 165, 233, 0.2);
+            
+            --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Background Canvas */
+        #traffic-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        /* Typography & Utilities */
+        h1, h2, h3 { font-weight: 600; letter-spacing: 0.5px; }
+        .text-blue { color: var(--blue-tech); text-shadow: 0 0 10px rgba(14,165,233,0.5); }
+        .text-green { color: var(--green-flow); text-shadow: 0 0 10px rgba(16,185,129,0.5); }
+        .text-amber { color: var(--amber-alert); text-shadow: 0 0 10px rgba(245,158,11,0.5); }
+        .text-red { color: var(--red-congestion); }
+        .mono { font-family: var(--font-mono); }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            border-color: var(--blue-tech);
+            transform: translateY(-2px);
+        }
+
+        /* Navigation */
+        header {
+            position: fixed;
+            top: 0; width: 100%;
+            background: rgba(11, 17, 32, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 100;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.2rem; font-weight: bold; color: var(--blue-tech); display: flex; align-items: center; gap: 10px; }
+        .logo span { display: inline-block; width: 10px; height: 10px; background: var(--green-flow); border-radius: 50%; box-shadow: 0 0 8px var(--green-flow); }
+        nav ul { list-style: none; display: flex; gap: 1.5rem; }
+        nav a { color: var(--text-main); text-decoration: none; font-size: 0.9rem; transition: color 0.3s; }
+        nav a:hover { color: var(--blue-tech); }
+
+        /* Container */
+        .container { max-width: 1200px; margin: 0 auto; padding: 6rem 2rem 2rem 2rem; }
+        section { margin-bottom: 6rem; }
+        .section-header { text-align: center; margin-bottom: 3rem; }
+        .section-header h2 { font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--text-main); }
+        .section-header p { color: var(--text-muted); font-size: 1.1rem; }
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: transparent;
+            color: var(--blue-tech);
+            border: 1px solid var(--blue-tech);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(14,165,233,0.1);
+        }
+        .btn:hover {
+            background: var(--blue-tech);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px rgba(14,165,233,0.5);
+        }
+        .btn-primary { background: var(--blue-tech); color: var(--bg-dark); }
+        .btn-primary:hover { background: transparent; color: var(--blue-tech); }
+
+        /* Hero Section */
+        .hero { text-align: center; padding: 4rem 0; }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(90deg, #0ea5e9, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 2rem; }
+        .stats-banner { display: flex; justify-content: center; gap: 3rem; margin-top: 4rem; flex-wrap: wrap; }
+        .stat-item h3 { font-size: 2.5rem; color: var(--blue-tech); font-family: var(--font-mono); }
+        .stat-item span { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Sliders / Inputs */
+        input[type=range] { width: 100%; margin: 10px 0; accent-color: var(--blue-tech); }
+        .control-group { margin-bottom: 1.5rem; }
+        .control-group label { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-muted); }
+        select, input[type=number] { width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: var(--text-main); border-radius: 6px; font-family: var(--font-mono); }
+
+        /* Custom Visualizations */
+        .braking-track { width: 100%; height: 60px; background: #1e293b; border-radius: 30px; position: relative; margin-top: 2rem; overflow: hidden; border: 1px dashed var(--text-muted); }
+        .car { width: 40px; height: 20px; background: var(--blue-tech); position: absolute; top: 20px; left: 0; border-radius: 4px; transition: left 0.3s; box-shadow: 0 0 10px var(--blue-tech); }
+        .car::after { content: ''; position: absolute; right: -10px; top: 5px; width: 10px; height: 10px; background: rgba(255,0,0,0.8); border-radius: 50%; box-shadow: 0 0 10px red; opacity: 0; transition: opacity 0.2s; }
+        .car.braking::after { opacity: 1; }
+        .obstacle { width: 20px; height: 60px; background: var(--red-congestion); position: absolute; right: 0; top: 0; opacity: 0.3; }
+
+        /* Dashboard */
+        .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .dash-widget { background: rgba(15,23,42,0.8); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 8px; text-align: center; }
+        .dash-val { font-size: 2rem; font-family: var(--font-mono); margin: 0.5rem 0; }
+        .chart-container { height: 200px; display: flex; align-items: flex-end; gap: 5px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; }
+        .bar { flex: 1; background: var(--blue-tech); border-radius: 4px 4px 0 0; transition: height 0.5s ease; position: relative; }
+        .bar:hover { background: var(--green-flow); }
+        .bar span { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-family: var(--font-mono); opacity: 0; }
+        .bar:hover span { opacity: 1; }
+
+        /* Terminal */
+        .terminal { background: #000; border: 1px solid #333; border-radius: 8px; padding: 1.5rem; font-family: var(--font-mono); font-size: 0.9rem; height: 350px; overflow-y: auto; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .term-output { color: #10b981; margin-bottom: 1rem; white-space: pre-wrap; }
+        .term-input-line { display: flex; color: #10b981; }
+        .term-prompt { margin-right: 10px; }
+        .term-input { background: transparent; border: none; color: var(--text-main); font-family: var(--font-mono); font-size: 0.9rem; flex: 1; outline: none; }
+
+        footer { text-align: center; padding: 3rem; border-top: 1px solid var(--glass-border); margin-top: 4rem; color: var(--text-muted); font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Background Canvas -->
+    <canvas id="traffic-canvas"></canvas>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="logo"><span></span> TMC CONTROL</div>
+        <nav>
+            <ul>
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#fundamentos">Fundamentos</a></li>
+                <li><a href="#seguridad">Seguridad (Visión Cero)</a></li>
+                <li><a href="#dashboard">Dashboard</a></li>
+                <li><a href="#terminal">CLI Terminal</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- 4. Inicio -->
+        <section id="inicio" class="hero">
+            <h1>INGENIERÍA DE TRÁFICO Y SEGURIDAD VIAL</h1>
+            <p>Movilidad Urbana • Sistemas Inteligentes de Transporte (ITS) • Visión Cero</p>
+            <p style="font-size: 0.9rem; margin-bottom: 2rem;">Centro de control avanzado para el monitoreo, simulación y gestión de la infraestructura vial de la Smart City.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="#dashboard" class="btn btn-primary">Explorar Red Vial</a>
+                <a href="#playground" class="btn">Iniciar Simulador</a>
+            </div>
+            
+            <div class="stats-banner">
+                <div class="stat-item">
+                    <h3 id="stat-veh">0</h3>
+                    <span>Vehículos Aforados</span>
+                </div>
+                <div class="stat-item">
+                    <h3 id="stat-int">0</h3>
+                    <span>Intersecciones Activas</span>
+                </div>
+                <div class="stat-item">
+                    <h3 id="stat-time">0</h3>
+                    <span>Hrs. Viaje Ahorradas</span>
+                </div>
+                <div class="stat-item">
+                    <h3 id="stat-acc" class="text-green">0</h3>
+                    <span>Accidentes Prevenidos</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Fundamentos de Tráfico -->
+        <section id="fundamentos">
+            <div class="section-header">
+                <h2>Fundamentos Macroscópicos</h2>
+                <p>Las variables esenciales que rigen la teoría del flujo vehicular.</p>
+            </div>
+            <div class="grid-3">
+                <div class="glass-panel">
+                    <h3 class="text-blue">Flujo Vehicular (q)</h3>
+                    <p class="text-muted">Tasa a la cual los vehículos pasan por un punto.</p>
+                    <p class="mono" style="margin-top: 1rem; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">q = N / T [veh/h]</p>
+                </div>
+                <div class="glass-panel">
+                    <h3 class="text-amber">Densidad (k)</h3>
+                    <p class="text-muted">Número de vehículos ocupando un tramo de vía.</p>
+                    <p class="mono" style="margin-top: 1rem; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">k = N / d [veh/km]</p>
+                </div>
+                <div class="glass-panel">
+                    <h3 class="text-green">Velocidad (v)</h3>
+                    <p class="text-muted">Distancia recorrida por unidad de tiempo. Espacial vs Temporal.</p>
+                    <p class="mono" style="margin-top: 1rem; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">v = q / k [km/h]</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Seguridad Vial y Visión Cero -->
+        <section id="seguridad">
+            <div class="section-header">
+                <h2>Visión Cero & Distancia de Parada</h2>
+                <p>El enfoque "Sistema Seguro" requiere un diseño geométrico indulgente. Simula la distancia de frenado de diseño.</p>
+            </div>
+            <div class="glass-panel">
+                <div class="grid-2">
+                    <div>
+                        <div class="control-group">
+                            <label>Velocidad de Operación (v): <span id="vel-val">60 km/h</span></label>
+                            <input type="range" id="vel-slider" min="20" max="120" value="60">
+                        </div>
+                        <div class="control-group">
+                            <label>Coef. de Fricción (f) [Pavimento mojado]: <span id="fric-val">0.32</span></label>
+                            <input type="range" id="fric-slider" min="0.28" max="0.40" step="0.01" value="0.32">
+                        </div>
+                        <p class="mono" style="margin-top:1rem; font-size: 0.9rem;">
+                            Dp = (v * tr) + (v² / 254(f ± G)) <br><br>
+                            Tiempo Percepción-Reacción (tr) = 2.5s <br>
+                            Distancia Total de Parada: <strong class="text-amber" id="dist-calc">0 m</strong>
+                        </p>
+                    </div>
+                    <div>
+                        <div class="braking-track" id="track">
+                            <div class="obstacle"></div>
+                            <div class="car" id="sim-car"></div>
+                        </div>
+                        <p style="font-size: 0.85rem; margin-top: 1rem; color: var(--text-muted); text-align: center;">El vehículo aplica frenos al entrar al tramo. Si choca, el diseño falla.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. Playground (Simulador LOS) -->
+        <section id="playground">
+            <div class="section-header">
+                <h2>Intersection Playground (HCM)</h2>
+                <p>Análisis de capacidad y Nivel de Servicio (LOS) para una intersección aislada.</p>
+            </div>
+            <div class="glass-panel grid-2">
+                <div>
+                    <div class="control-group">
+                        <label>Tipo de Control:</label>
+                        <select id="sim-control">
+                            <option value="signal">Semáforo Actuado (ITS)</option>
+                            <option value="yield">Ceda el Paso</option>
+                            <option value="stop">Señal de PARE (AWSC)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Volumen Demanda Principal (veh/h): <span id="vol1-val">800</span></label>
+                        <input type="range" id="vol1-slider" min="100" max="2500" value="800">
+                    </div>
+                    <div class="control-group">
+                        <label>Volumen Demanda Secundaria (veh/h): <span id="vol2-val">400</span></label>
+                        <input type="range" id="vol2-slider" min="50" max="1500" value="400">
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.4); padding: 2rem; border-radius: 8px; text-align: center; display:flex; flex-direction: column; justify-content: center;">
+                    <h3 style="margin-bottom: 1rem;">Nivel de Servicio Estimado</h3>
+                    <div style="font-size: 4rem; font-family: var(--font-mono); font-weight: bold; line-height: 1;" id="los-grade">B</div>
+                    <p class="mono" style="margin-top: 1rem; color: var(--text-muted);">Demora Promedio: <span id="delay-val" class="text-blue">14.2 s/veh</span></p>
+                    <p class="mono" style="color: var(--text-muted);">Longitud Cola Máx: <span id="queue-val">45 m</span></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. TMC Dashboard -->
+        <section id="dashboard">
+            <div class="section-header">
+                <h2>Dashboard de Control (TMC)</h2>
+                <p>Telemetría en tiempo real de la red vial inteligente (ITS).</p>
+            </div>
+            
+            <div class="dash-grid">
+                <div class="dash-widget">
+                    <p class="text-muted" style="font-size:0.8rem">ESTADO RED</p>
+                    <div class="dash-val text-green">ÓPTIMO</div>
+                </div>
+                <div class="dash-widget">
+                    <p class="text-muted" style="font-size:0.8rem">VELOCIDAD PROMEDIO</p>
+                    <div class="dash-val text-blue" id="dash-speed">42 km/h</div>
+                </div>
+                <div class="dash-widget">
+                    <p class="text-muted" style="font-size:0.8rem">ÍNDICE DE CONGESTIÓN</p>
+                    <div class="dash-val text-amber" id="dash-cong">1.12</div>
+                </div>
+                <div class="dash-widget">
+                    <p class="text-muted" style="font-size:0.8rem">INCIDENTES ACTIVOS</p>
+                    <div class="dash-val text-red" id="dash-incidents">0</div>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h3 style="margin-bottom: 1rem; font-size: 1rem;" class="text-muted">Aforo Horario vs Capacidad (Perfil 24h)</h3>
+                <!-- Gráfico CSS Puro simulado -->
+                <div class="chart-container" id="bar-chart">
+                    <!-- Barras generadas por JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 12 & 13. Movilidad y Áreas -->
+        <section class="grid-2">
+            <div>
+                <h3 class="text-blue" style="margin-bottom: 1rem;">Diseño Urbano & Micromovilidad</h3>
+                <div class="glass-panel">
+                    <p>La eficiencia geométrica del espacio urbano.</p>
+                    <div style="margin-top: 1rem; border-left: 2px solid var(--blue-tech); padding-left: 1rem;">
+                        <p class="mono" style="font-size: 0.9rem;">🚙 50 Autos = ~1000 m² (Congestión)</p>
+                        <div style="height: 10px; background: var(--red-congestion); width: 100%; margin: 5px 0 15px;"></div>
+                        
+                        <p class="mono" style="font-size: 0.9rem;">🚌 1 Autobús (BRT) = ~30 m² (Eficiencia)</p>
+                        <div style="height: 10px; background: var(--amber-alert); width: 15%; margin: 5px 0 15px;"></div>
+                        
+                        <p class="mono" style="font-size: 0.9rem;">🚲 50 Bicicletas = ~90 m² (Sostenibilidad)</p>
+                        <div style="height: 10px; background: var(--green-flow); width: 25%; margin: 5px 0;"></div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-blue" style="margin-bottom: 1rem;">Software del Sector</h3>
+                <div class="grid-2">
+                    <div class="glass-panel" style="padding: 1rem; text-align: center;">
+                        <h4 class="mono">PTV Vissim</h4><p style="font-size:0.8rem; color:var(--text-muted)">Microsimulación</p>
+                    </div>
+                    <div class="glass-panel" style="padding: 1rem; text-align: center;">
+                        <h4 class="mono">Synchro</h4><p style="font-size:0.8rem; color:var(--text-muted)">Coordinación Semafórica</p>
+                    </div>
+                    <div class="glass-panel" style="padding: 1rem; text-align: center;">
+                        <h4 class="mono">Civil 3D</h4><p style="font-size:0.8rem; color:var(--text-muted)">Diseño Geométrico</p>
+                    </div>
+                    <div class="glass-panel" style="padding: 1rem; text-align: center;">
+                        <h4 class="mono">Python (Pandas)</h4><p style="font-size:0.8rem; color:var(--text-muted)">Data Science Vial</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 16. Terminal CLI -->
+        <section id="terminal">
+            <div class="section-header">
+                <h2>Consola de Ingeniería ITS</h2>
+                <p>Simulador de interfaz de línea de comandos para diagnósticos de red.</p>
+            </div>
+            <div class="terminal" id="cli-container">
+                <div class="term-output">Bienvenido al subsistema de comandos TMC OS v3.1.2.
+Escriba 'help' para ver los módulos de ingeniería disponibles.</div>
+                <div id="cli-history"></div>
+                <div class="term-input-line">
+                    <span class="term-prompt">sys.eng@tmc:~$</span>
+                    <input type="text" class="term-input" id="cli-input" autocomplete="off" spellcheck="false" autofocus>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>TMC CONTROL PLATFORM &copy; 2026</p>
+        <p style="margin-top: 5px;">Desarrollado para propósitos educativos en Ingeniería de Tráfico, Seguridad Vial y Smart Cities.</p>
+        <p style="margin-top: 5px; font-family: var(--font-mono); color: var(--blue-tech);">HTML5 | CSS3 | Vanilla JS | Canvas API</p>
+    </footer>
+
+    <!-- LOGIC (JavaScript Puro) -->
+    <script>
+        /**
+         * 1. Animadores de Estadísticas (Hero)
+         */
+        const animateValue = (id, start, end, duration, format = false) => {
+            let obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                let val = Math.floor(progress * (end - start) + start);
+                if(format) val = val.toLocaleString();
+                obj.innerHTML = val;
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        };
+        
+        setTimeout(() => {
+            animateValue("stat-veh", 0, 1450230, 2000, true);
+            animateValue("stat-int", 0, 312, 1500);
+            animateValue("stat-time", 0, 89450, 2000, true);
+            animateValue("stat-acc", 0, 142, 2500);
+        }, 500);
+
+        /**
+         * 2. Simulador de Distancia de Frenado (Visión Cero)
+         */
+        const velSlider = document.getElementById('vel-slider');
+        const fricSlider = document.getElementById('fric-slider');
+        const velVal = document.getElementById('vel-val');
+        const fricVal = document.getElementById('fric-val');
+        const distCalc = document.getElementById('dist-calc');
+        const simCar = document.getElementById('sim-car');
+
+        function updateBraking() {
+            const v = parseFloat(velSlider.value); // km/h
+            const f = parseFloat(fricSlider.value); // coef
+            const tr = 2.5; // seg
+            
+            velVal.innerText = `${v} km/h`;
+            fricVal.innerText = f.toFixed(2);
+
+            // Fórmula Diseño Geométrico: Dp = d_percepcion + d_frenado
+            // Dp = (v/3.6)*tr + (v/3.6)^2 / (2 * 9.81 * f)
+            const v_ms = v / 3.6;
+            const d_perc = v_ms * tr;
+            const d_freno = Math.pow(v_ms, 2) / (2 * 9.81 * f);
+            const d_total = d_perc + d_freno;
+
+            distCalc.innerText = `${Math.round(d_total)} m`;
+            
+            // Animación CSS simple
+            simCar.classList.add('braking');
+            // Mapeo visual (asumiendo que 120m es el máximo ancho del track visualmente)
+            const trackWidth = document.getElementById('track').offsetWidth;
+            const pxPerMeter = trackWidth / 150; 
+            const pixelDist = Math.min(d_total * pxPerMeter, trackWidth - 40);
+            
+            simCar.style.left = `${pixelDist}px`;
+            
+            if(d_total > 120) {
+                distCalc.classList.add('text-red');
+                distCalc.classList.remove('text-amber');
+            } else {
+                distCalc.classList.add('text-amber');
+                distCalc.classList.remove('text-red');
+            }
+            
+            setTimeout(() => simCar.classList.remove('braking'), 500);
+        }
+
+        velSlider.addEventListener('input', updateBraking);
+        fricSlider.addEventListener('input', updateBraking);
+        updateBraking();
+
+        /**
+         * 3. Intersection Playground (HCM Simplificado)
+         */
+        const ctrlType = document.getElementById('sim-control');
+        const v1Slider = document.getElementById('vol1-slider');
+        const v2Slider = document.getElementById('vol2-slider');
+        const v1Val = document.getElementById('vol1-val');
+        const v2Val = document.getElementById('vol2-val');
+        const losGrade = document.getElementById('los-grade');
+        const delayVal = document.getElementById('delay-val');
+        const queueVal = document.getElementById('queue-val');
+
+        function updatePlayground() {
+            const v1 = parseInt(v1Slider.value);
+            const v2 = parseInt(v2Slider.value);
+            const tipo = ctrlType.value;
+            
+            v1Val.innerText = v1;
+            v2Val.innerText = v2;
+
+            let delay = 0;
+            let cap = 0;
+
+            // Simulación matemática muy abstracta para demostración de ingeniería
+            if(tipo === 'signal') { cap = 3200; delay = ((v1+v2)/cap) * 20 + ((v1+v2) > cap ? 50 : 0); }
+            if(tipo === 'yield') { cap = 2000; delay = ((v1+v2)/cap) * 15 + ((v1+v2) > cap ? 100 : 0); }
+            if(tipo === 'stop') { cap = 1400; delay = ((v1+v2)/cap) * 35 + ((v1+v2) > cap ? 200 : 0); }
+
+            let totalVol = v1 + v2;
+            let vcRatio = totalVol / cap;
+            
+            // Retraso no lineal básico (Curva de Demora)
+            delay = delay * (1 + Math.pow(vcRatio, 4));
+
+            // Determinar LOS (Nivel de Servicio) basado en demora
+            let los = 'A'; color = "var(--green-flow)";
+            if (delay > 10) { los = 'B'; color = "var(--green-flow)"; }
+            if (delay > 20) { los = 'C'; color = "var(--blue-tech)"; }
+            if (delay > 35) { los = 'D'; color = "var(--amber-alert)"; }
+            if (delay > 55) { los = 'E'; color = "var(--amber-alert)"; }
+            if (delay > 80 || vcRatio > 1.0) { los = 'F'; color = "var(--red-congestion)"; delay = Math.max(delay, 120); }
+
+            losGrade.innerText = los;
+            losGrade.style.color = color;
+            delayVal.innerText = `${delay.toFixed(1)} s/veh`;
+            queueVal.innerText = `${Math.round(totalVol * 0.05 * vcRatio)} m`;
+        }
+
+        ctrlType.addEventListener('change', updatePlayground);
+        v1Slider.addEventListener('input', updatePlayground);
+        v2Slider.addEventListener('input', updatePlayground);
+        updatePlayground();
+
+        /**
+         * 4. Dashboard de Gráficos (CSS Native) y Datos en Vivo
+         */
+        const chartContainer = document.getElementById('bar-chart');
+        const hours = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+        // Perfil típico bi-modal (Mañana y Tarde)
+        const baseVolumes = [40, 80, 100, 75, 60, 55, 65, 85, 70, 60, 65, 90, 100, 80, 50, 30]; 
+        
+        // Render bar chart
+        hours.forEach((h, i) => {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.height = `${baseVolumes[i]}%`;
+            if(baseVolumes[i] > 85) bar.style.background = 'var(--red-congestion)';
+            else if (baseVolumes[i] > 70) bar.style.background = 'var(--amber-alert)';
+            
+            const tooltip = document.createElement('span');
+            tooltip.innerText = `${h}:00`;
+            bar.appendChild(tooltip);
+            chartContainer.appendChild(bar);
+        });
+
+        // Live dashboard updater
+        setInterval(() => {
+            document.getElementById('dash-speed').innerText = (40 + Math.random() * 5).toFixed(1) + ' km/h';
+            document.getElementById('dash-cong').innerText = (1.0 + Math.random() * 0.3).toFixed(2);
+            document.getElementById('dash-incidents').innerText = Math.random() > 0.8 ? '1' : '0';
+        }, 3000);
+
+        /**
+         * 5. Terminal CLI
+         */
+        const cliInput = document.getElementById('cli-input');
+        const cliHistory = document.getElementById('cli-history');
+
+        const commands = {
+            'help': "Comandos disponibles:\n  network.status   - Estado de la red vial\n  signal.optimize  - Activar algoritmo adaptativo ITS\n  traffic.analyze  - Resumen macroscópico\n  safety.audit     - Ejecutar auditoría Visión Cero\n  its.sensors_check- Diagnóstico de espiras inductivas\n  clear            - Limpiar consola",
+            'network.status': "[OK] Conexión estable con 312 nodos semafóricos.\n[WARN] Saturación detectada en Corredor Norte (Nivel de Servicio E).",
+            'signal.optimize': "Ejecutando algoritmo de coordinación Synchro/Vissim...\nCalculando Offset y Split óptimos...\n[ÉXITO] Banda verde (Onda Verde) ampliada en 14%. Demora reducida.",
+            'traffic.analyze': "Parámetros actuales:\n q (Flujo Promedio): 1450 veh/h\n k (Densidad Promedio): 35 veh/km\n v (Velocidad Espacial): 41.4 km/h",
+            'safety.audit': "Evaluando Tramos de Concentración de Accidentes (TCA)...\n- Intersección 42: Visibilidad reducida. Recomendación: Traffic Calming.\n- Curva 12: Fricción pavimento baja (0.28). Riesgo de derrape.",
+            'its.sensors_check': "Espiras magnéticas: 145/145 operativas.\nCámaras LPR: 24/25 operativas.\nRadar Microondas: 12/12 operativos.",
+            'clear': ""
+        };
+
+        cliInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = this.value.trim().toLowerCase();
+                const outBlock = document.createElement('div');
+                
+                let response = `<div class="term-input-line" style="margin-bottom:0.5rem;"><span class="term-prompt">sys.eng@tmc:~$</span><span>${cmd}</span></div>`;
+                
+                if(cmd === 'clear') {
+                    cliHistory.innerHTML = '';
+                    this.value = '';
+                    return;
+                } else if(commands[cmd]) {
+                    response += `<div class="term-output" style="color:var(--text-main); margin-bottom:1rem;">${commands[cmd]}</div>`;
+                } else if (cmd !== "") {
+                    response += `<div class="term-output" style="color:var(--red-congestion); margin-bottom:1rem;">Comando no reconocido. Escriba 'help'.</div>`;
+                }
+
+                outBlock.innerHTML = response;
+                cliHistory.appendChild(outBlock);
+                this.value = '';
+                
+                // Auto scroll
+                const container = document.getElementById('cli-container');
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+
+        /**
+         * 6. Simulador de Red Vial (Fondo Canvas 2D)
+         */
+        const canvas = document.getElementById('traffic-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let nodes = [];
+        let edges = [];
+        let vehicles = [];
+        let mouse = { x: null, y: null, radius: 150 };
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            
+            // Crear cuadrícula isométrica / topológica abstracta
+            nodes = [];
+            edges = [];
+            vehicles = [];
+            const cols = Math.floor(width / 200) + 1;
+            const rows = Math.floor(height / 150) + 1;
+            
+            for(let i=0; i<cols; i++){
+                for(let j=0; j<rows; j++){
+                    nodes.push({
+                        id: i + '-' + j,
+                        x: i * 200 + (Math.random()*50 - 25),
+                        y: j * 150 + (Math.random()*50 - 25),
+                        signalTimer: Math.random() * 200,
+                        isGreen: Math.random() > 0.5
+                    });
+                }
+            }
+
+            // Crear enlaces (calles)
+            for(let i=0; i<nodes.length; i++) {
+                for(let j=i+1; j<nodes.length; j++) {
+                    let d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                    if(d > 0 && d < 280 && Math.random() > 0.2) {
+                        edges.push({ source: nodes[i], target: nodes[j] });
+                    }
+                }
+            }
+
+            // Inicializar vehículos
+            for(let i=0; i<150; i++) {
+                spawnVehicle();
+            }
+        }
+
+        function spawnVehicle() {
+            let edge = edges[Math.floor(Math.random() * edges.length)];
+            let reverse = Math.random() > 0.5;
+            vehicles.push({
+                edge: edge,
+                progress: Math.random(),
+                speed: 0.002 + Math.random() * 0.003,
+                source: reverse ? edge.target : edge.source,
+                target: reverse ? edge.source : edge.target,
+                waiting: false
+            });
+        }
+
+        window.addEventListener('resize', initCanvas);
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+
+        function drawNetwork() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Dibujar cuadrícula tenue
+            ctx.strokeStyle = 'rgba(14, 165, 233, 0.05)';
+            ctx.lineWidth = 1;
+            edges.forEach(e => {
+                ctx.beginPath();
+                ctx.moveTo(e.source.x, e.source.y);
+                ctx.lineTo(e.target.x, e.target.y);
+                ctx.stroke();
+            });
+
+            // Actualizar Nodos (Semáforos)
+            nodes.forEach(n => {
+                n.signalTimer--;
+                if(n.signalTimer <= 0) {
+                    n.isGreen = !n.isGreen;
+                    n.signalTimer = 100 + Math.random() * 200;
+                }
+                ctx.fillStyle = n.isGreen ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Dibujar Vehículos
+            vehicles.forEach(v => {
+                // Interacción con el cursor (Onda de choque / Congestión)
+                let carX = v.source.x + (v.target.x - v.source.x) * v.progress;
+                let carY = v.source.y + (v.target.y - v.source.y) * v.progress;
+                
+                let distToMouse = mouse.x ? Math.hypot(carX - mouse.x, carY - mouse.y) : Infinity;
+                let currentSpeed = v.speed;
+
+                if (distToMouse < mouse.radius) {
+                    currentSpeed *= 0.2; // Frenado por cercanía al mouse
+                    ctx.fillStyle = 'var(--red-congestion)'; // Frena
+                } else {
+                    ctx.fillStyle = 'var(--blue-tech)';
+                }
+
+                // Lógica de llegada a nodo
+                if (v.progress >= 0.95 && !v.target.isGreen) {
+                    v.waiting = true;
+                    ctx.fillStyle = 'var(--amber-alert)';
+                } else {
+                    v.waiting = false;
+                }
+
+                if (!v.waiting) {
+                    v.progress += currentSpeed;
+                }
+
+                // Reasignar ruta al llegar
+                if (v.progress >= 1) {
+                    let nextEdges = edges.filter(e => e.source === v.target || e.target === v.target);
+                    if(nextEdges.length > 0) {
+                        v.edge = nextEdges[Math.floor(Math.random() * nextEdges.length)];
+                        v.source = v.target;
+                        v.target = v.edge.source === v.source ? v.edge.target : v.edge.source;
+                        v.progress = 0;
+                    } else {
+                        v.progress = 0; // U-turn
+                        let temp = v.source;
+                        v.source = v.target;
+                        v.target = temp;
+                    }
+                }
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.beginPath();
+                ctx.arc(carX, carY, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            requestAnimationFrame(drawNetwork);
+        }
+
+        initCanvas();
+        drawNetwork();
+
+    </script>
+</body>
+</html>
