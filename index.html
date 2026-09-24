@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMC - Ingeniería de Tráfico y Seguridad Vial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --accent-blue: #00f3ff;
+            --accent-amber: #ffb000;
+            --accent-green: #00ff66;
+            --accent-red: #ff0055;
+            --glass-bg: rgba(11, 17, 32, 0.6);
+            --glass-border: rgba(0, 243, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(0, 243, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        /* Glow Effects */
+        .text-glow-blue { text-shadow: 0 0 10px var(--accent-blue); }
+        .text-glow-green { text-shadow: 0 0 10px var(--accent-green); }
+        .text-glow-amber { text-shadow: 0 0 10px var(--accent-amber); }
+        .text-glow-red { text-shadow: 0 0 10px var(--accent-red); }
+
+        .border-glow-blue { box-shadow: 0 0 10px var(--accent-blue) inset, 0 0 10px var(--accent-blue); border-color: var(--accent-blue); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00c2cc; }
+
+        /* Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.4;
+            pointer-events: none; /* Let clicks pass through */
+        }
+
+        /* Form Inputs */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px var(--accent-blue);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        
+        /* Terminal */
+        #terminal-output {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-green) transparent;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <canvas id="bg-canvas"></canvas>
+
+    <nav class="fixed w-full z-50 glass-panel border-b border-t-0 border-l-0 border-r-0 rounded-none px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2 font-bold text-xl tracking-wider text-white">
+            <span class="w-3 h-3 rounded-full bg-[#00f3ff] animate-pulse"></span>
+            TMC <span class="font-light text-gray-400 text-sm hidden sm:inline">| Traffic Management Center</span>
+        </div>
+        <div class="hidden md:flex gap-6 text-sm font-medium text-gray-300">
+            <a href="#inicio" class="hover:text-[#00f3ff] transition">Inicio</a>
+            <a href="#fundamentos" class="hover:text-[#00f3ff] transition">Fundamentos</a>
+            <a href="#playground" class="hover:text-[#00f3ff] transition">Simulador</a>
+            <a href="#dashboard" class="hover:text-[#00f3ff] transition">Dashboard</a>
+            <a href="#terminal" class="hover:text-[#00f3ff] transition">CLI</a>
+        </div>
+    </nav>
+
+    <main class="pt-24 px-4 sm:px-8 max-w-7xl mx-auto">
+        <!-- Hero Section -->
+        <section id="inicio" class="py-16 flex flex-col items-center text-center">
+            <div class="inline-block px-3 py-1 mb-6 border border-[#00f3ff] text-[#00f3ff] rounded-full text-xs font-mono uppercase tracking-widest bg-[#00f3ff]/10">
+                Sistema Operativo de Movilidad v2.4
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-4 leading-tight">
+                INGENIERÍA DE TRÁFICO <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#00f3ff] to-[#00ff66]">Y SEGURIDAD VIAL</span>
+            </h1>
+            <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl">
+                Movilidad Urbana • Sistemas Inteligentes • Visión Cero. Operando la red vial hacia el futuro sostenible.
+            </p>
+            <div class="flex gap-4">
+                <a href="#playground" class="px-6 py-3 bg-[#00f3ff] text-[#0b1120] font-bold rounded-md hover:bg-white transition shadow-[0_0_15px_rgba(0,243,255,0.6)]">Iniciar Simulador</a>
+                <a href="#dashboard" class="px-6 py-3 border border-gray-500 text-white font-bold rounded-md hover:border-[#00f3ff] hover:text-[#00f3ff] transition glass-panel">Ver Red Vial</a>
+            </div>
+
+            <!-- Stats Counters -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 w-full">
+                <div class="glass-panel p-6 text-center">
+                    <div class="text-[#00f3ff] text-3xl font-mono font-bold text-glow-blue mb-1" id="count-veh">0</div>
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">Vehículos Aforados</div>
+                </div>
+                <div class="glass-panel p-6 text-center">
+                    <div class="text-[#00ff66] text-3xl font-mono font-bold text-glow-green mb-1" id="count-int">0</div>
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">Intersecciones Optimizadas</div>
+                </div>
+                <div class="glass-panel p-6 text-center">
+                    <div class="text-[#ffb000] text-3xl font-mono font-bold text-glow-amber mb-1"><span id="count-time">0</span>h</div>
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">Tiempo Ahorrado</div>
+                </div>
+                <div class="glass-panel p-6 text-center">
+                    <div class="text-[#ff0055] text-3xl font-mono font-bold text-glow-red mb-1" id="count-acc">0</div>
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">Accidentes Prevenidos</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fundamentals -->
+        <section id="fundamentos" class="py-16">
+            <h2 class="text-2xl font-bold text-white border-l-4 border-[#00f3ff] pl-4 mb-8">Fundamentos de Tráfico</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel p-6 relative group cursor-pointer overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#00f3ff]/10 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+                    <h3 class="text-xl font-bold text-[#00f3ff] mb-2">Flujo (q)</h3>
+                    <p class="text-sm text-gray-400 mb-4">Número de vehículos que pasan por un punto en un intervalo de tiempo.</p>
+                    <div class="font-mono text-lg bg-black/40 p-2 rounded text-center border border-gray-700">q = N / t  [veh/h]</div>
+                </div>
+                <div class="glass-panel p-6 relative group cursor-pointer overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#ffb000]/10 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+                    <h3 class="text-xl font-bold text-[#ffb000] mb-2">Velocidad (v)</h3>
+                    <p class="text-sm text-gray-400 mb-4">Tasa de movimiento del flujo vehicular. Espacial o temporal.</p>
+                    <div class="font-mono text-lg bg-black/40 p-2 rounded text-center border border-gray-700">v = d / t  [km/h]</div>
+                </div>
+                <div class="glass-panel p-6 relative group cursor-pointer overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#00ff66]/10 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+                    <h3 class="text-xl font-bold text-[#00ff66] mb-2">Densidad (k)</h3>
+                    <p class="text-sm text-gray-400 mb-4">Número de vehículos ocupando un tramo de vía en un instante dado.</p>
+                    <div class="font-mono text-lg bg-black/40 p-2 rounded text-center border border-gray-700">k = N / d  [veh/km]</div>
+                </div>
+            </div>
+            <div class="mt-6 glass-panel p-4 text-center">
+                <span class="text-gray-400 text-sm mr-4">Ecuación Fundamental:</span>
+                <span class="font-mono text-xl text-white text-glow-blue">q = k × v</span>
+            </div>
+        </section>
+
+        <!-- Road Safety & Vision Zero -->
+        <section class="py-16">
+            <h2 class="text-2xl font-bold text-white border-l-4 border-[#ff0055] pl-4 mb-8">Visión Cero & Distancia de Frenado</h2>
+            <div class="glass-panel p-6 md:p-8">
+                <div class="flex flex-col md:flex-row gap-8 items-center">
+                    <div class="w-full md:w-1/3">
+                        <h3 class="text-lg font-bold text-white mb-4">Parámetros del Vehículo</h3>
+                        <label class="block text-sm text-gray-400 mb-2">Velocidad: <span id="val-speed" class="font-mono text-[#00f3ff] text-glow-blue">60</span> km/h</label>
+                        <input type="range" id="slider-speed" min="20" max="140" value="60" class="mb-6">
+                        
+                        <div class="text-sm text-gray-400 mb-1">Tiempo de Reacción: <span class="font-mono text-white">2.5s</span></div>
+                        <div class="text-sm text-gray-400 mb-1">Coef. de Fricción: <span class="font-mono text-white">0.65</span> (Pavimento seco)</div>
+                    </div>
+                    <div class="w-full md:w-2/3">
+                        <div class="relative h-32 w-full border-l-2 border-dashed border-gray-600 pl-4 flex flex-col justify-center">
+                            <!-- Distancia de reaccion -->
+                            <div class="mb-2">
+                                <div class="text-xs text-[#ffb000] mb-1">Reacción (<span id="dist-reac-text" class="font-mono">41.7</span>m)</div>
+                                <div id="bar-reac" class="h-4 bg-[#ffb000] rounded-r-md transition-all duration-300" style="width: 25%;"></div>
+                            </div>
+                            <!-- Distancia de frenado -->
+                            <div>
+                                <div class="text-xs text-[#ff0055] mb-1">Frenado (<span id="dist-fren-text" class="font-mono">21.8</span>m)</div>
+                                <div id="bar-fren" class="h-4 bg-[#ff0055] rounded-r-md transition-all duration-300" style="width: 15%;"></div>
+                            </div>
+                            <!-- Escala (Mock) -->
+                            <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-700 mt-4"></div>
+                            <div class="absolute -bottom-6 left-0 text-xs text-gray-500 font-mono">0m</div>
+                            <div class="absolute -bottom-6 right-0 text-xs text-gray-500 font-mono" id="dist-total">Distancia Total: 63.5m</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data & ITS Section -->
+        <section class="py-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Daily Volume Profile -->
+            <div>
+                <h2 class="text-xl font-bold text-white border-l-4 border-[#00f3ff] pl-4 mb-4">Perfil Volumétrico (24h)</h2>
+                <div class="glass-panel p-4 h-64 relative">
+                    <canvas id="chart-volume" class="w-full h-full"></canvas>
+                    <div class="absolute top-4 right-4 text-xs font-mono text-gray-400 flex flex-col gap-1">
+                        <span class="flex items-center gap-2"><div class="w-2 h-2 bg-[#00f3ff]"></div> Día Laborable</span>
+                        <span class="flex items-center gap-2"><div class="w-2 h-2 bg-[#ffb000]"></div> Fin de Semana</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ITS Green Wave -->
+            <div>
+                <h2 class="text-xl font-bold text-white border-l-4 border-[#00ff66] pl-4 mb-4">Sistemas ITS: Onda Verde</h2>
+                <div class="glass-panel p-4 h-64 flex flex-col justify-center relative overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjIiIGN5PSIyIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L3N2Zz4=')]">
+                    <!-- Road -->
+                    <div class="w-full h-12 border-t border-b border-gray-600 relative flex justify-around items-center">
+                        <div class="absolute left-0 w-full border-t border-dashed border-gray-500 h-0"></div>
+                        
+                        <!-- Traffic Lights -->
+                        <div class="z-10 flex flex-col gap-1 bg-black p-1 border border-gray-700 rounded-sm signal" data-phase="0">
+                            <div class="w-3 h-3 rounded-full bg-red-900 l-red"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500 l-green shadow-[0_0_8px_#00ff66]"></div>
+                        </div>
+                        <div class="z-10 flex flex-col gap-1 bg-black p-1 border border-gray-700 rounded-sm signal" data-phase="1">
+                            <div class="w-3 h-3 rounded-full bg-red-900 l-red"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-900 l-green"></div>
+                        </div>
+                        <div class="z-10 flex flex-col gap-1 bg-black p-1 border border-gray-700 rounded-sm signal" data-phase="2">
+                            <div class="w-3 h-3 rounded-full bg-red-500 l-red shadow-[0_0_8px_#ff0055]"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-900 l-green"></div>
+                        </div>
+
+                        <!-- Vehicle -->
+                        <div id="its-vehicle" class="absolute w-8 h-4 bg-[#00f3ff] rounded-sm shadow-[0_0_10px_#00f3ff] transition-all ease-linear" style="left: -10%;"></div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-4 text-center font-mono">Simulando offset semafórico (Progresión coordinada)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Intersection Playground -->
+        <section id="playground" class="py-16">
+            <h2 class="text-2xl font-bold text-white border-l-4 border-[#ffb000] pl-4 mb-8">Intersection Playground (Simulador)</h2>
+            <div class="glass-panel p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Controls -->
+                    <div class="lg:col-span-1 flex flex-col gap-6 border-r border-gray-700/50 pr-6">
+                        <div>
+                            <label class="block text-sm font-bold text-white mb-2">Volumen Norte-Sur</label>
+                            <input type="range" id="vol-ns" min="100" max="2500" step="50" value="800">
+                            <div class="text-right text-xs text-[#00f3ff] font-mono mt-1"><span id="val-ns">800</span> veh/h</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-white mb-2">Volumen Este-Oeste</label>
+                            <input type="range" id="vol-eo" min="100" max="2500" step="50" value="400">
+                            <div class="text-right text-xs text-[#00f3ff] font-mono mt-1"><span id="val-eo">400</span> veh/h</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-white mb-2">Tipo de Control</label>
+                            <select id="ctrl-type" class="w-full bg-black/50 border border-gray-600 text-white rounded p-2 text-sm font-mono focus:border-[#00f3ff] outline-none">
+                                <option value="signal">Semáforo Actuado</option>
+                                <option value="stop">Pare (Preferencia N-S)</option>
+                                <option value="yield">Ceda el Paso</option>
+                            </select>
+                        </div>
+                        <div class="pt-4 border-t border-gray-700/50">
+                            <button id="btn-calc-sim" class="w-full py-2 bg-[#ffb000] text-[#0b1120] font-bold rounded hover:bg-white transition shadow-[0_0_10px_rgba(255,176,0,0.5)]">Actualizar Modelo</button>
+                        </div>
+                    </div>
+
+                    <!-- Visual / Results -->
+                    <div class="lg:col-span-2 flex flex-col justify-center">
+                        <div class="grid grid-cols-2 gap-4 text-center mb-8">
+                            <div class="bg-black/40 p-4 border border-gray-700 rounded-lg">
+                                <div class="text-sm text-gray-400 mb-1">Demora Promedio</div>
+                                <div class="text-3xl font-mono text-white"><span id="res-delay">18.5</span>s</div>
+                            </div>
+                            <div class="bg-black/40 p-4 border border-gray-700 rounded-lg relative overflow-hidden">
+                                <div id="los-bg" class="absolute inset-0 bg-green-500/10 z-0"></div>
+                                <div class="relative z-10">
+                                    <div class="text-sm text-gray-400 mb-1">Nivel de Servicio (LOS)</div>
+                                    <div class="text-3xl font-mono font-bold text-glow-green" id="res-los" style="color: #00ff66;">B</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Abstract visualization of queue -->
+                        <div class="relative h-24 border border-gray-700 bg-black/20 rounded flex items-center justify-center overflow-hidden">
+                            <div class="absolute left-4 top-2 text-xs text-gray-500 font-mono">Cola Visual N-S</div>
+                            <div class="w-3/4 h-2 bg-gray-800 rounded-full relative">
+                                <div id="vis-queue" class="absolute left-0 top-0 h-full bg-[#ff0055] shadow-[0_0_8px_#ff0055] rounded-full transition-all duration-500" style="width: 20%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Realtime TMC Dashboard -->
+        <section id="dashboard" class="py-16">
+            <h2 class="text-2xl font-bold text-white border-l-4 border-[#00f3ff] pl-4 mb-8">Dashboard Centro de Control (TMC)</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <!-- KPI Panels -->
+                <div class="lg:col-span-1 flex flex-col gap-4">
+                    <div class="glass-panel p-4 flex justify-between items-center">
+                        <span class="text-sm text-gray-400">Estado Red</span>
+                        <span class="px-2 py-1 bg-green-500/20 text-[#00ff66] text-xs font-mono rounded border border-[#00ff66]/50">NOMINAL</span>
+                    </div>
+                    <div class="glass-panel p-4 flex justify-between items-center">
+                        <span class="text-sm text-gray-400">Índice Congestión</span>
+                        <span class="font-mono text-xl text-[#ffb000]" id="rt-congestion">1.24</span>
+                    </div>
+                    <div class="glass-panel p-4 flex justify-between items-center">
+                        <span class="text-sm text-gray-400">Incidentes</span>
+                        <span class="font-mono text-xl text-[#ff0055] animate-pulse">1</span>
+                    </div>
+                </div>
+
+                <!-- Live Charts -->
+                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 flex flex-col">
+                        <div class="text-xs text-gray-400 mb-2 font-mono">Tasa de Flujo en Vivo (veh/min)</div>
+                        <canvas id="rt-line-chart" class="w-full h-32 flex-grow"></canvas>
+                    </div>
+                    <div class="glass-panel p-4 flex flex-col">
+                        <div class="text-xs text-gray-400 mb-2 font-mono">Composición Vehicular</div>
+                        <canvas id="rt-bar-chart" class="w-full h-32 flex-grow"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Micro-mobility & Space -->
+        <section class="py-16">
+            <h2 class="text-2xl font-bold text-white border-l-4 border-[#00ff66] pl-4 mb-8">Uso del Espacio Vial (50 Personas)</h2>
+            <div class="glass-panel p-6 flex flex-col gap-6">
+                <!-- Autos -->
+                <div>
+                    <div class="text-sm text-gray-400 mb-2 flex justify-between"><span>En Automóvil Privado (Ocupación: 1.2)</span> <span class="font-mono text-[#ff0055]">42 Vehículos</span></div>
+                    <div class="flex flex-wrap gap-1 p-2 bg-black/40 border border-gray-700 rounded w-full">
+                        <script>
+                            for(let i=0; i<42; i++) document.write(`<div class="w-6 h-4 bg-[#ff0055] rounded-sm opacity-80"></div>`);
+                        </script>
+                    </div>
+                </div>
+                <!-- Bus -->
+                <div>
+                    <div class="text-sm text-gray-400 mb-2 flex justify-between"><span>En Autobús (Transporte Público)</span> <span class="font-mono text-[#00f3ff]">1 Vehículo</span></div>
+                    <div class="flex flex-wrap gap-1 p-2 bg-black/40 border border-gray-700 rounded w-full lg:w-1/4">
+                        <div class="w-24 h-6 bg-[#00f3ff] rounded-sm flex items-center justify-center text-xs text-[#0b1120] font-bold">BUS</div>
+                    </div>
+                </div>
+                <!-- Bikes -->
+                <div>
+                    <div class="text-sm text-gray-400 mb-2 flex justify-between"><span>En Bicicleta (Micro-movilidad)</span> <span class="font-mono text-[#00ff66]">50 Bicicletas</span></div>
+                    <div class="flex flex-wrap gap-1 p-2 bg-black/40 border border-gray-700 rounded w-full lg:w-1/2">
+                        <script>
+                            for(let i=0; i<50; i++) document.write(`<div class="w-3 h-3 rounded-full bg-[#00ff66] opacity-80"></div>`);
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Software Ecosystem -->
+        <section class="py-16">
+            <h2 class="text-xl font-bold text-gray-300 text-center mb-8 uppercase tracking-widest">Ecosistema Tecnológico</h2>
+            <div class="flex flex-wrap justify-center gap-4">
+                <span class="px-4 py-2 glass-panel text-sm font-mono text-gray-400 hover:text-white transition cursor-default">PTV Vissim</span>
+                <span class="px-4 py-2 glass-panel text-sm font-mono text-gray-400 hover:text-white transition cursor-default">Synchro Studio</span>
+                <span class="px-4 py-2 glass-panel text-sm font-mono text-gray-400 hover:text-white transition cursor-default">HCS (Highway Capacity)</span>
+                <span class="px-4 py-2 glass-panel text-sm font-mono text-gray-400 hover:text-white transition cursor-default">Aimsun Next</span>
+                <span class="px-4 py-2 glass-panel text-sm font-mono text-gray-400 hover:text-white transition cursor-default">SIDRA Intersection</span>
+                <span class="px-4 py-2 glass-panel text-sm font-mono text-gray-400 hover:text-white transition cursor-default">Python Data Science</span>
+            </div>
+        </section>
+
+        <!-- Interactive Terminal -->
+        <section id="terminal" class="py-16">
+            <div class="bg-[#050914] border border-gray-700 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.8)] max-w-4xl mx-auto">
+                <div class="bg-gray-800 px-4 py-2 flex items-center gap-2 border-b border-gray-700">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-gray-400 font-mono ml-2">tmc-terminal - root@smartcity:~</span>
+                </div>
+                <div class="p-4 h-64 overflow-y-auto font-mono text-sm" id="terminal-output">
+                    <div class="text-[#00ff66] mb-2">TMC Command Line Interface v1.0.0</div>
+                    <div class="text-gray-400 mb-4">Type 'help' for a list of available commands.</div>
+                    <!-- Terminal logs will be injected here -->
+                </div>
+                <div class="p-4 bg-[#050914] border-t border-gray-800 flex items-center font-mono text-sm">
+                    <span class="text-[#00f3ff] mr-2">root@tmc:~$</span>
+                    <input type="text" id="terminal-input" class="bg-transparent border-none outline-none text-white w-full" autocomplete="off" spellcheck="false" autofocus>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-8 text-center border-t border-gray-800 text-sm text-gray-500 mt-16">
+            <p>Ingeniería de Tráfico y Seguridad Vial - Centro de Control de Tráfico Simulado</p>
+            <p class="mt-2 font-mono text-xs">Uso Educativo - Creado con HTML5, CSS3 y JS Vanilla</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // -----------------------------------------
+        // 1. Background Interactive Canvas (Network)
+        // -----------------------------------------
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Network Nodes
+        const nodes = [];
+        const numNodes = 20;
+        for(let i=0; i<numNodes; i++) {
+            nodes.push({
+                id: i,
+                x: Math.random() * width,
+                y: Math.random() * height,
+                connections: []
+            });
+        }
+        // Connect nodes (Delaunay/closest logic mock)
+        nodes.forEach(n1 => {
+            let sortedNodes = [...nodes].sort((a,b) => Math.hypot(a.x-n1.x, a.y-n1.y) - Math.hypot(b.x-n1.x, b.y-n1.y));
+            // Connect to 2-3 closest
+            for(let i=1; i<=3; i++) {
+                if(sortedNodes[i] && !n1.connections.includes(sortedNodes[i].id)) {
+                    n1.connections.push(sortedNodes[i].id);
+                    sortedNodes[i].connections.push(n1.id);
+                }
+            }
+        });
+
+        // Particles (Vehicles)
+        const particles = [];
+        const numParticles = 60;
+        for(let i=0; i<numParticles; i++) {
+            let startNode = nodes[Math.floor(Math.random()*nodes.length)];
+            particles.push({
+                x: startNode.x, y: startNode.y,
+                currentNode: startNode,
+                targetNode: null,
+                speed: 0.5 + Math.random(),
+                progress: 0,
+                paused: false,
+                pauseTimer: 0
+            });
+        }
+
+        let mouseX = -1000, mouseY = -1000;
+        window.addEventListener('mousemove', e => {
+            mouseX = e.clientX; mouseY = e.clientY;
+        });
+
+        function drawNetwork() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw edges
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+            ctx.lineWidth = 1;
+            nodes.forEach(n => {
+                n.connections.forEach(cid => {
+                    let c = nodes.find(x => x.id === cid);
+                    if (c) {
+                        ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+                    }
+                });
+            });
+
+            // Draw nodes
+            nodes.forEach(n => {
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.2)';
+                ctx.beginPath(); ctx.arc(n.x, n.y, 3, 0, Math.PI*2); ctx.fill();
+            });
+
+            // Update & Draw particles
+            particles.forEach(p => {
+                if(p.paused) {
+                    p.pauseTimer--;
+                    if(p.pauseTimer <= 0) p.paused = false;
+                } else {
+                    if(!p.targetNode) {
+                        let nextIds = p.currentNode.connections;
+                        if (nextIds && nextIds.length > 0) {
+                            let nextId = nextIds[Math.floor(Math.random()*nextIds.length)];
+                            p.targetNode = nodes.find(n => n.id === nextId);
+                        }
+                        if (!p.targetNode) {
+                            p.targetNode = p.currentNode; // Fallback to avoid errors
+                        }
+                        p.progress = 0;
+                    }
+
+                    let dx = p.targetNode.x - p.currentNode.x;
+                    let dy = p.targetNode.y - p.currentNode.y;
+                    let dist = Math.hypot(dx, dy);
+                    
+                    // Mouse interaction (congestion)
+                    let mouseDist = Math.hypot(p.x - mouseX, p.y - mouseY);
+                    let currentSpeed = p.speed;
+                    if(mouseDist < 100) currentSpeed *= 0.2; // Slow down
+
+                    p.progress += currentSpeed / dist;
+
+                    if(p.progress >= 1) {
+                        p.currentNode = p.targetNode;
+                        p.targetNode = null;
+                        p.x = p.currentNode.x;
+                        p.y = p.currentNode.y;
+                        p.paused = true;
+                        p.pauseTimer = Math.random() * 50 + 20; // Red light wait
+                    } else {
+                        p.x = p.currentNode.x + dx * p.progress;
+                        p.y = p.currentNode.y + dy * p.progress;
+                    }
+                }
+
+                // Draw particle
+                ctx.fillStyle = p.paused ? '#ff0055' : '#00ff66';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+                if(p.paused) {
+                    ctx.shadowColor = '#ff0055';
+                    ctx.shadowBlur = 5;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+            });
+            requestAnimationFrame(drawNetwork);
+        }
+        drawNetwork();
+
+        // -----------------------------------------
+        // 2. Animated Counters
+        // -----------------------------------------
+        function animateValue(id, start, end, duration) {
+            let obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString('en-US');
+                if (progress < 1) { window.requestAnimationFrame(step); }
+            };
+            window.requestAnimationFrame(step);
+        }
+        window.addEventListener('load', () => {
+            animateValue("count-veh", 0, 15420, 2000);
+            animateValue("count-int", 0, 312, 1500);
+            animateValue("count-time", 0, 8450, 2500);
+            animateValue("count-acc", 0, 48, 1500);
+        });
+
+        // -----------------------------------------
+        // 3. Safety Simulator
+        // -----------------------------------------
+        const slSpeed = document.getElementById('slider-speed');
+        const valSpeed = document.getElementById('val-speed');
+        const distReacText = document.getElementById('dist-reac-text');
+        const distFrenText = document.getElementById('dist-fren-text');
+        const barReac = document.getElementById('bar-reac');
+        const barFren = document.getElementById('bar-fren');
+        const distTotal = document.getElementById('dist-total');
+
+        slSpeed.addEventListener('input', (e) => {
+            let v = parseInt(e.target.value);
+            valSpeed.innerText = v;
+            
+            // Calc
+            let v_ms = v / 3.6;
+            let d_reac = v_ms * 2.5; // tr = 2.5s
+            let d_fren = Math.pow(v, 2) / (254 * 0.65); // f = 0.65
+            let total = d_reac + d_fren;
+
+            distReacText.innerText = d_reac.toFixed(1);
+            distFrenText.innerText = d_fren.toFixed(1);
+            distTotal.innerText = `Distancia Total: ${total.toFixed(1)}m`;
+
+            // Max mock distance ~ 180m scale mapping
+            let maxDist = 200;
+            let wReac = (d_reac / maxDist) * 100;
+            let wFren = (d_fren / maxDist) * 100;
+
+            barReac.style.width = `${wReac}%`;
+            barFren.style.width = `${wFren}%`;
+        });
+
+        // -----------------------------------------
+        // 4. Data Chart (24h Profile)
+        // -----------------------------------------
+        const cVol = document.getElementById('chart-volume');
+        const ctxVol = cVol.getContext('2d');
+        
+        function drawVolumeChart() {
+            cVol.width = cVol.parentElement.clientWidth;
+            cVol.height = cVol.parentElement.clientHeight;
+            ctxVol.clearRect(0,0, cVol.width, cVol.height);
+
+            // Mock Data curve
+            ctxVol.beginPath();
+            ctxVol.moveTo(0, cVol.height);
+            for(let x=0; x<=cVol.width; x+=5) {
+                let t = (x / cVol.width) * 24; // hour 0-24
+                // Double gaussian bell for AM (8) and PM (18) peaks
+                let y1 = 100 * Math.exp(-Math.pow(t - 8, 2) / 4);
+                let y2 = 120 * Math.exp(-Math.pow(t - 18, 2) / 6);
+                let base = 20 + 10 * Math.sin(t);
+                let val = y1 + y2 + base;
+                
+                let yPixel = cVol.height - (val / 150) * cVol.height;
+                ctxVol.lineTo(x, yPixel);
+            }
+            ctxVol.strokeStyle = '#00f3ff';
+            ctxVol.lineWidth = 3;
+            ctxVol.shadowColor = '#00f3ff';
+            ctxVol.shadowBlur = 10;
+            ctxVol.stroke();
+            ctxVol.shadowBlur = 0; // reset
+        }
+        window.addEventListener('resize', drawVolumeChart);
+        setTimeout(drawVolumeChart, 500); // init
+
+        // -----------------------------------------
+        // 5. ITS Green Wave Animation
+        // -----------------------------------------
+        const itsVehicle = document.getElementById('its-vehicle');
+        const signals = document.querySelectorAll('.signal');
+        let itsPos = -10;
+        let activePhase = 0; // 0, 1, 2 correspond to signals
+        
+        setInterval(() => {
+            itsPos += 2;
+            if(itsPos > 110) itsPos = -10;
+            itsVehicle.style.left = `${itsPos}%`;
+
+            // Simple logic to turn signal green right before vehicle arrives
+            signals.forEach((sig, index) => {
+                let targetPos = (index + 1) * 25; // approximate positions based on flex
+                let lRed = sig.querySelector('.l-red');
+                let lGreen = sig.querySelector('.l-green');
+                
+                if (itsPos > targetPos - 15 && itsPos < targetPos + 5) {
+                    lRed.style.backgroundColor = '#450a0a'; // dark red
+                    lRed.style.boxShadow = 'none';
+                    lGreen.style.backgroundColor = '#00ff66';
+                    lGreen.style.boxShadow = '0 0 8px #00ff66';
+                } else {
+                    lRed.style.backgroundColor = '#ff0055';
+                    lRed.style.boxShadow = '0 0 8px #ff0055';
+                    lGreen.style.backgroundColor = '#064e3b'; // dark green
+                    lGreen.style.boxShadow = 'none';
+                }
+            });
+        }, 100);
+
+        // -----------------------------------------
+        // 6. Intersection Playground Logic
+        // -----------------------------------------
+        const btnCalc = document.getElementById('btn-calc-sim');
+        btnCalc.addEventListener('click', () => {
+            let v_ns = parseInt(document.getElementById('vol-ns').value);
+            let v_eo = parseInt(document.getElementById('vol-eo').value);
+            let ctrl = document.getElementById('ctrl-type').value;
+
+            document.getElementById('val-ns').innerText = v_ns;
+            document.getElementById('val-eo').innerText = v_eo;
+
+            let delay = 0;
+            let cap_ns = 1800, cap_eo = 1800; // base capacities
+
+            if (ctrl === 'signal') {
+                // Simplified Webster delay model
+                let C = 90; // cycle length
+                let g_ns = (v_ns / (v_ns + v_eo)) * (C - 10);
+                if(g_ns < 10) g_ns = 10;
+                let c_ns = cap_ns * (g_ns/C);
+                let x = v_ns / c_ns;
+                if(x > 0.99) x = 0.99; // cap to avoid infinity
+                delay = (0.5 * C * Math.pow(1 - g_ns/C, 2)) / (1 - Math.min(1, x)*(g_ns/C)) + (900 * 0.25 * ( (x-1) + Math.sqrt(Math.pow(x-1,2) + (4*x)/(c_ns)) ));
+            } else if (ctrl === 'stop') {
+                // Mock gap acceptance model delay
+                delay = 10 + (v_eo * 0.05) + (v_ns * 0.02); 
+            } else {
+                delay = 5 + (v_eo * 0.02) + (v_ns * 0.01);
+            }
+
+            // Cap and format
+            delay = Math.max(5, Math.min(120, delay));
+            document.getElementById('res-delay').innerText = delay.toFixed(1);
+
+            // Determine LOS
+            let los = 'A', color = '#00ff66';
+            if(delay <= 10)      { los = 'A'; color = '#00ff66'; }
+            else if(delay <= 20) { los = 'B'; color = '#a3ff00'; }
+            else if(delay <= 35) { los = 'C'; color = '#ffeb00'; }
+            else if(delay <= 55) { los = 'D'; color = '#ffb000'; }
+            else if(delay <= 80) { los = 'E'; color = '#ff5e00'; }
+            else                 { los = 'F'; color = '#ff0055'; }
+
+            const resLos = document.getElementById('res-los');
+            resLos.innerText = los;
+            resLos.style.color = color;
+            resLos.style.textShadow = `0 0 10px ${color}`;
+            document.getElementById('los-bg').style.backgroundColor = `${color}20`; // 20 hex opacity
+
+            // Queue visual (mock mapping delay to queue length)
+            let qWidth = Math.min(100, (delay / 80) * 100);
+            let visQ = document.getElementById('vis-queue');
+            visQ.style.width = `${qWidth}%`;
+            visQ.style.backgroundColor = color;
+            visQ.style.boxShadow = `0 0 8px ${color}`;
+        });
+
+        // -----------------------------------------
+        // 7. TMC Real-Time Dashboard
+        // -----------------------------------------
+        const rtLine = document.getElementById('rt-line-chart');
+        const rtLineCtx = rtLine.getContext('2d');
+        const rtBar = document.getElementById('rt-bar-chart');
+        const rtBarCtx = rtBar.getContext('2d');
+        
+        let rtData = Array(20).fill(50);
+        
+        function drawDashboardCharts() {
+            // Line Chart
+            rtLine.width = rtLine.parentElement.clientWidth;
+            rtLine.height = rtLine.parentElement.clientHeight - 20;
+            rtLineCtx.clearRect(0,0, rtLine.width, rtLine.height);
+            
+            rtLineCtx.beginPath();
+            let stepX = rtLine.width / (rtData.length - 1);
+            for(let i=0; i<rtData.length; i++) {
+                let x = i * stepX;
+                let y = rtLine.height - (rtData[i] / 100) * rtLine.height;
+                if(i===0) rtLineCtx.moveTo(x,y);
+                else rtLineCtx.lineTo(x,y);
+            }
+            rtLineCtx.strokeStyle = '#00ff66';
+            rtLineCtx.lineWidth = 2;
+            rtLineCtx.stroke();
+
+            // Bar chart (Composition: Auto, Bus, Moto, Pesado)
+            rtBar.width = rtBar.parentElement.clientWidth;
+            rtBar.height = rtBar.parentElement.clientHeight - 20;
+            rtBarCtx.clearRect(0,0, rtBar.width, rtBar.height);
+            
+            let vals = [75, 5, 15, 5]; // percentages
+            let colors = ['#00f3ff', '#ffb000', '#00ff66', '#ff0055'];
+            let labels = ['AU', 'BS', 'MO', 'PE'];
+            let bWidth = rtBar.width / 4 - 10;
+            
+            vals.forEach((v, i) => {
+                let x = i * (bWidth + 10) + 5;
+                // Add slight random fluctuation
+                let valPlot = v + (Math.random() * 4 - 2);
+                let h = (valPlot / 100) * rtBar.height;
+                let y = rtBar.height - h;
+                
+                rtBarCtx.fillStyle = colors[i];
+                rtBarCtx.fillRect(x, y, bWidth, h);
+                
+                rtBarCtx.fillStyle = '#fff';
+                rtBarCtx.font = '10px monospace';
+                rtBarCtx.fillText(labels[i], x + bWidth/2 - 5, rtBar.height - 2);
+            });
+        }
+        
+        setInterval(() => {
+            // Update Data
+            let nextVal = rtData[rtData.length-1] + (Math.random()*20 - 10);
+            nextVal = Math.max(10, Math.min(90, nextVal));
+            rtData.push(nextVal);
+            rtData.shift();
+            
+            // Update UI Number
+            let cong = (nextVal / 50).toFixed(2);
+            let congEl = document.getElementById('rt-congestion');
+            congEl.innerText = cong;
+            if(cong > 1.5) { congEl.style.color = '#ff0055'; }
+            else if (cong > 1.2) { congEl.style.color = '#ffb000'; }
+            else { congEl.style.color = '#00ff66'; }
+
+            drawDashboardCharts();
+        }, 1500);
+        window.addEventListener('resize', drawDashboardCharts);
+
+        // -----------------------------------------
+        // 8. Terminal (CLI) Logic
+        // -----------------------------------------
+        const termInput = document.getElementById('terminal-input');
+        const termOutput = document.getElementById('terminal-output');
+        
+        function printTerm(text, colorClass = 'text-gray-300') {
+            const el = document.createElement('div');
+            el.className = `mb-1 ${colorClass}`;
+            el.innerText = text;
+            termOutput.appendChild(el);
+            termOutput.scrollTop = termOutput.scrollHeight;
+        }
+
+        termInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                const cmd = termInput.value.trim().toLowerCase();
+                termInput.value = '';
+                
+                if(!cmd) return;
+                
+                printTerm(`> ${cmd}`, 'text-white font-bold');
+
+                switch(cmd) {
+                    case 'help':
+                        printTerm('Available commands:');
+                        printTerm('  network.status   - Check general node health');
+                        printTerm('  signal.optimize  - Run adaptive green wave algorithm');
+                        printTerm('  traffic.analyze  - Output Level of Service metrics');
+                        printTerm('  safety.audit     - Scan for crash hotspots');
+                        printTerm('  its.sensors_check- Verify loop detectors & cameras');
+                        printTerm('  sim.run          - Initialize microsimulation engine');
+                        printTerm('  clear            - Clear terminal window');
+                        break;
+                    case 'network.status':
+                        printTerm('Scanning nodes...', 'text-yellow-400');
+                        setTimeout(() => {
+                            printTerm('Nodes online: 142/142', 'text-[#00ff66]');
+                            printTerm('Incidents active: 1 (Cleared in 5m)');
+                            printTerm('Network latency: 12ms');
+                        }, 500);
+                        break;
+                    case 'signal.optimize':
+                        printTerm('Calculating offsets for Corridor A...', 'text-[#00f3ff]');
+                        setTimeout(() => {
+                            printTerm('Success: Cycle lengths synced. Progression bandwidth increased by 18%.', 'text-[#00ff66]');
+                        }, 800);
+                        break;
+                    case 'traffic.analyze':
+                        printTerm('V/C Ratio at Intersection #42: 0.95', 'text-yellow-400');
+                        printTerm('LOS F detected during PM Peak. Queue > 250m.', 'text-[#ff0055]');
+                        break;
+                    case 'safety.audit':
+                        printTerm('Analyzing trajectory data...', 'text-[#00f3ff]');
+                        setTimeout(() => {
+                            printTerm('WARNING: High speed variance on Link 7.', 'text-[#ffb000]');
+                            printTerm('Recommendation: Implement Traffic Calming measures (Speed humps).');
+                        }, 600);
+                        break;
+                    case 'its.sensors_check':
+                        printTerm('Inductive loops: 98% Operational');
+                        printTerm('CCTV Feeds: 100% Online');
+                        printTerm('VMS Panels: Syncing message [CONGESTION AHEAD]');
+                        break;
+                    case 'sim.run':
+                        printTerm('Initializing VISSIM mock environment...');
+                        printTerm('Loading 50,000 agents...', 'text-yellow-400');
+                        setTimeout(() => { printTerm('Simulation running at 10x real-time.', 'text-[#00ff66]'); }, 1000);
+                        break;
+                    case 'clear':
+                        termOutput.innerHTML = '';
+                        break;
+                    default:
+                        printTerm(`Command not found: ${cmd}`, 'text-[#ff0055]');
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
